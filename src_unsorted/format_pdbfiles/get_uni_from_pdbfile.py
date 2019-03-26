@@ -32,9 +32,12 @@ def parce_unifile(cdir, fname):
                         pdbchains = strpdbchain.split('=')[0].split('/')
                         #print(pdbchains)
                         if (len(currentID)>0):
+                            print(currentID)
+                            strcurrentID = ','.join(currentID)
                             for p in pdbchains:
-                                for u in currentID:
-                                    pdbuni[pdbid] = u
+                                pdbuni[pdbid+p] = strcurrentID
+                                # for u in currentID:
+                                #     pdbuni[pdbid] = u
                     else:
                         print(currentID)
                         print(line)
@@ -43,7 +46,7 @@ def parce_unifile(cdir, fname):
     return pdbuni
 def annotate_interfaces(cdir, pdbuni):
 
-    wfile = open(cdir+'pdbuni90int.txt', 'w')
+    wfile = open(cdir+'pdbuni90int_array_chains.txt', 'w')
     ifile = open(cdir+'interface0.9mmrep.txt')
     for l in ifile:
         pp = l.split()
@@ -59,7 +62,7 @@ def annotate_interfaces(cdir, pdbuni):
         #print(val1)
         #print(val2)
         #exit()
-        wfile.write(pp[0]+' '+pp[1]+' '+str(val1)+' '+str(val2)+'\n')
+        wfile.write(pp[0]+' '+pp[1]+' '+str(val1)+'*'+str(val2)+'\n')
 
     ifile.close()
     wfile.flush()
@@ -76,15 +79,22 @@ def annotate_ecod(cdir, pdbuni):
         mark = '-'
         uni2 = '-'
         code = pp[3].strip()
-        if(code=='UNP'):
-            if(uni2 == uni1):
-                mark = '1'
-            else:
+        print(code)
+        if (pdbid in pdbuni.keys()):
+            uni2 = pdbuni[pdbid].upper().strip()
+            if(code=='UNP'):
+                unps = uni2.split(',')
                 mark = '0'
-        if(pdbid in pdbuni.keys()):
-            uni2 = pdbuni[pdbid].upper()
+                print(uni1)
+                print(unps)
+                for unp in unps:
+                    print(unp)
+                    if(unp == uni1):
+                        mark = '1'
+                #exit()
+
         #exit()
-        wfile.write(pp[0]+','+pp[1]+','+pp[2]+','+code+','+uni2+','+mark+'\n')
+        wfile.write(pp[0]+','+pp[1]+','+pp[2]+','+code+','+mark+','+uni2+'\n')
 
     ifile.close()
     wfile.flush()
@@ -92,15 +102,15 @@ def annotate_ecod(cdir, pdbuni):
 
 def main_parce():
     cdir = 'D:/work/bioproteins_dl/data/'
-    fname = 'uniprot20000ecod.txt'
-    # wfile = open(cdir+'map_ecod_uni_20000.txt', 'w')
+    fname = 'uniprot90interface.txt'
+    #wfile = open(cdir+'map_pdb_uni_int90_array_chains.txt', 'w')
     d = parce_unifile(cdir, fname)
-    annotate_ecod(cdir,d)
+    annotate_interfaces(cdir,d)
     # for k, v in d.items():
     #     wfile.write(k.upper()+':'+v.upper()+'\n')
     # wfile.flush()
     # wfile.close()
-    # return
+    return
 
 main_parce()
 exit()
