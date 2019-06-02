@@ -162,7 +162,7 @@ def task_tmalign_interface_to_proteins_simple(pdata):
     if cfg.odir is None:
         odir = dir_i
     else:
-        odir = cfg.odir
+        odir = os.path.join(cfg.odir, os.path.basename(dir_i))
     os.makedirs(odir, exist_ok=True)
     path_i = os.path.join(dir_i, row_i['path'])
     path_idx_score = odir + '_score_tmalign.txt'
