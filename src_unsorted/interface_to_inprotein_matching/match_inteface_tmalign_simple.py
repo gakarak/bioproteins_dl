@@ -35,6 +35,7 @@ def get_args(params = None):
     parser.add_argument('--batch', type=int, required=False, default=1, help='batch size for splitting proteins data per interface')
     parser.add_argument('--threads', type=int, required=False, default=1, help='#threads for processing')
     parser.add_argument('--use_process', action="store_true", help='flag, if present - use process insted threads')
+    parser.add_argument('--debug', action="store_true", help='flag, if present - use debug messaging')
     #
     parser.add_argument('--run_tmalign', action="store_true", help='run task mm-align')
     parser.add_argument('--run_pproc_i', action="store_true", help='run task postrocessing mmalign data for every interface')
@@ -57,6 +58,7 @@ class Config(object):
         self.num_log_steps = getattr(args, 'num_log_steps')
         self.batch = getattr(args, 'batch')
         self.odir = getattr(args, 'odir')
+        self.debug = getattr(args, 'debug')
         self.threads = getattr(args, 'threads')
         self.use_process = getattr(args, 'use_process')
         #
@@ -176,7 +178,7 @@ def task_tmalign_interface_to_proteins_simple(pdata):
     len_i = row_i['chains_legnth_total2']
     for xi, (_, row_p) in enumerate(data_p.iterrows()):
         len_p = row_p['chains_legnth_total']
-        if len_p < len_i:
+        if cfg.debug and (len_p < len_i):
             logging.warning('\t*** protein length less than interface len_i/len_p={}/{}, skip... i=[{}], p=[{}]'
                             .format(len_i, len_p, row_i['path'], row_p['path']))
             continue
