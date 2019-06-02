@@ -165,8 +165,8 @@ def task_tmalign_interface_to_proteins_simple(pdata):
         odir = os.path.join(cfg.odir, os.path.basename(dir_i))
     os.makedirs(odir, exist_ok=True)
     path_i = os.path.join(dir_i, row_i['path'])
-    path_idx_score = odir + '_score_tmalign.txt'
-    path_idx_score_error = odir + '_score_tmalign-errors.txt'
+    path_idx_score = os.path.join(odir, os.path.basename(path_i)) + '_score_tmalign.txt'
+    path_idx_score_error = os.path.join(odir, os.path.basename(path_i)) + '_score_tmalign-errors.txt'
     if os.path.isfile(path_idx_score):
         logging.warning('*** output scoring file exist, skip... [{}]'.format(path_idx_score))
         return True
