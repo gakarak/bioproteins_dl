@@ -4,6 +4,7 @@ __author__ = 'ar'
 
 import os
 import re
+import pickle as pkl
 import shutil
 import copy
 import json
@@ -33,9 +34,12 @@ def get_args(params = None):
     parser.add_argument('--num_log_steps', type=int, required=False, default=5, help='#log steps')
     parser.add_argument('--odir', type=str, required=False, default=None, help='output directory')
     parser.add_argument('--batch', type=int, required=False, default=1, help='batch size for splitting proteins data per interface')
+    parser.add_argument('--tm_threshold', type=float, required=False, default=0.3, help='tm score threshold for dropping fake matchings')
     parser.add_argument('--threads', type=int, required=False, default=1, help='#threads for processing')
     parser.add_argument('--use_process', action="store_true", help='flag, if present - use process insted threads')
     parser.add_argument('--debug', action="store_true", help='flag, if present - use debug messaging')
+    #
+    parser.add_argument('--to_csv', action="store_true", help='export data into CSV format (vs pickle by default)')
     #
     parser.add_argument('--run_tmalign', action="store_true", help='run task mm-align')
     parser.add_argument('--run_pproc_i', action="store_true", help='run task postrocessing mmalign data for every interface')
@@ -60,7 +64,9 @@ class Config(object):
         self.odir = getattr(args, 'odir')
         self.debug = getattr(args, 'debug')
         self.threads = getattr(args, 'threads')
+        self.tm_threshold = getattr(args, 'tm_threshold')
         self.use_process = getattr(args, 'use_process')
+        self.to_csv = getattr(args, 'to_csv')
         #
         self.run_tmalign = getattr(args, 'run_tmalign')
         self.run_pproc_i = getattr(args, 'run_pproc_i')
@@ -129,7 +135,7 @@ def __tmalign_i_to_p(path_i, path_p) -> typing.Tuple[dict, bytes]:
     tm_chain_1 = float(re.findall(r'TM-score=\s+(\d+.\d*)', out_str_raw_split[17].decode())[0])
     tm_chain_2 = float(re.findall(r'TM-score=\s+(\d+.\d*)', out_str_raw_split[18].decode())[0])
     #
-    seq_indices = '/'.join([str(m.start()) for m in re.finditer(':|\.', out_str_raw_split[23].decode())])
+    # seq_indices = '/'.join([str(m.start()) for m in re.finditer(':|\.', out_str_raw_split[23].decode())])
     bn_p = os.path.basename(path_p)
     bn_i = os.path.basename(path_i)
     df_data = {
@@ -142,7 +148,9 @@ def __tmalign_i_to_p(path_i, path_p) -> typing.Tuple[dict, bytes]:
         'tm_chain_2':   tm_chain_2,
         'rmsd':         rmsd,
         'seq_id':       Seq_ID,
-        'seq_indices':  seq_indices
+        # 'seq_indices':  seq_indices,
+        'raw_seq1':         out_str_raw_split[22],
+        'raw_seq1_align':   out_str_raw_split[23]
     }
     return df_data, out_str_raw
 
@@ -155,6 +163,11 @@ def __append_error(path_txt, err_msg = None):
             f.write('\n')
 
 
+def __to_pickle(obj, path_out):
+    with open(path_out, 'wb') as f:
+        pkl.dump(obj, f)
+
+
 def task_tmalign_interface_to_proteins_simple(pdata):
     idx, idx_num, [row_i, path_p, cfg] = pdata
     dir_i = os.path.dirname(cfg.idx_interfaces)
@@ -165,7 +178,11 @@ def task_tmalign_interface_to_proteins_simple(pdata):
         odir = os.path.join(cfg.odir, os.path.basename(dir_i))
     os.makedirs(odir, exist_ok=True)
     path_i = os.path.join(dir_i, row_i['path'])
-    path_idx_score = os.path.join(odir, os.path.basename(path_i)) + '_score_tmalign.txt'
+    path_idx_score = os.path.join(odir, os.path.basename(path_i)) + '_score_tmalign'
+    if cfg.to_csv:
+        path_idx_score += '.txt'
+    else:
+        path_idx_score += '.pkl'
     path_idx_score_error = os.path.join(odir, os.path.basename(path_i)) + '_score_tmalign-errors.txt'
     if os.path.isfile(path_idx_score):
         logging.warning('*** output scoring file exist, skip... [{}]'.format(path_idx_score))
@@ -176,6 +193,8 @@ def task_tmalign_interface_to_proteins_simple(pdata):
     t0 = time.time()
     list_df_series = []
     len_i = row_i['chains_legnth_total2']
+    counter_valid = 0
+    counter_drop = 0
     for xi, (_, row_p) in enumerate(data_p.iterrows()):
         len_p = row_p['chains_legnth_total']
         if cfg.debug and (len_p < len_i):
@@ -186,7 +205,11 @@ def task_tmalign_interface_to_proteins_simple(pdata):
         path_p = os.path.join(dir_p, row_p['path'])
         try:
             df_data, _ = __tmalign_i_to_p(path_i, path_p)
-            list_df_series.append(df_data)
+            if df_data['tm_chain_2'] < cfg.tm_threshold:
+                counter_drop += 1
+            else:
+                list_df_series.append(df_data)
+                counter_valid += 1
         except Exception as err:
             str_err = ' [!!!] cant process TMAlign fpr p=[{}], i=[{}], skip... err=[{}]'.format(row_p['path'], row_i['path'], err)
             logging.error(str_err)
@@ -194,11 +217,15 @@ def task_tmalign_interface_to_proteins_simple(pdata):
             continue
         if (xi % step_) == 0:
             dt = time.time() - t1
-            logging.info('\t\t[{}/{}] [{}/{}] : [{}] -> [{}], dt ~ {:0.2f} (s)'.format(idx, idx_num, xi, num_data_p, row_i['path'], row_p['path'], dt))
+            logging.info('\t\t[{}/{}] [{}/{}] : [{}] -> [{}], #valid/#drop={}/{}, dt ~ {:0.2f} (s)'
+                         .format(idx, idx_num, xi, num_data_p, row_i['path'], row_p['path'], counter_valid, counter_drop, dt))
     if len(list_df_series) > 0:
         df_ = pd.DataFrame(list_df_series, columns=list_df_series[0].keys())
         path_idx_score_tmp = get_local_path_tmp(path_idx_score)
-        df_.to_csv(path_idx_score_tmp, index=False)
+        if cfg.to_csv:
+            df_.to_csv(path_idx_score_tmp, index=False)
+        else:
+            __to_pickle(df_, path_idx_score_tmp)
         shutil.move(path_idx_score_tmp, path_idx_score)
         dt = time.time() - t0
         dt_n = dt / num_data_p
@@ -212,7 +239,7 @@ def task_tmalign_interface_to_proteins_simple(pdata):
 
 
 def task_mmalign_pproc_i(pdata):
-    idx, idx_num, [path_i, paths_p, num_log_steps, tmpl] = pdata
+    idx, idx_num, [path_i, paths_p, num_log_steps, tmpl, tm_threshold] = pdata
     t1 = time.time()
     dir_i = path_i + '_match'
     paths_scores = glob.glob(os.path.join(dir_i, tmpl))
@@ -255,7 +282,7 @@ def run_tasks_tmaling_simple(path_i:list, path_p:list, cfg:Config):
                                max_threads=cfg.threads, use_process=cfg.use_process)
 
 def run_task_pproc_i(paths_i:list, paths_p:list, cfg:Config, tmpl = 'mmalign-*-scores.txt'):
-    task_data = [[x, paths_p, cfg.num_log_steps, tmpl] for x in paths_i]
+    task_data = [[x, paths_p, cfg.num_log_steps, tmpl, cfg.tm_threshold] for x in paths_i]
     ret_ = helper_threaded_processing(task_mmalign_pproc_i, task_data, 'pproc mmalign: interfaces',
                                       max_threads=cfg.threads, use_process=cfg.use_process)
     ret_ = np.array(ret_)
