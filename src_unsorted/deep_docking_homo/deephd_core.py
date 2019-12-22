@@ -22,7 +22,11 @@ def read_homo_pdb_coords(path_pdb: str, calc_dst=True, pdb_parser=None) -> dict:
     if pdb_parser is None:
         pdb_parser = PDBParser()
     ppb = PPBuilder()
-    models = list(pdb_parser.get_structure(os.path.basename(path_pdb), path_pdb).get_models())
+    models_ = list(pdb_parser.get_structure(os.path.basename(path_pdb), path_pdb).get_models())
+    models = []
+    for m in models_:
+        for c in list(m.get_chains()):
+            models.append(c)
     # models = list(ppb.build_peptides(pdb_parser.get_structure(os.path.basename(path_pdb), path_pdb)))
     # if len(models) != 2:
     #     raise IndexError('Invalid number of chains, required 2 chains in PDB file, but present only {}'.format(len(models)))
@@ -58,7 +62,8 @@ def main_debug():
     # path_pdb = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/homo/1a18AA_raw.pdb'
     # path_pdb = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/homo/1a3xAA_raw.pdb'
     # path_pdb = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/homo/1f02TT_raw.pdb'
-    path_pdb = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/homo/3qtcAA_raw.pdb'
+    # path_pdb = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/homo/3qtcAA_raw.pdb'
+    path_pdb = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/homo/2cjxAA_raw.pdb'
     q = read_homo_pdb_coords(path_pdb)
 
 

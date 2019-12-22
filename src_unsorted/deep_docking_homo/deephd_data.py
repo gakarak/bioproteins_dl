@@ -14,6 +14,7 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from task_utils import parallel_tasks_run_def
 import scipy.spatial.distance as sdst
+import skimage.io as io
 
 
 
@@ -78,10 +79,46 @@ class DHDDataset(Dataset):
         else:
             return 100000000
 
-    def __get_distance_mat(self, sample: dict, aug_params: dict = None) -> dict:
-        res_pw = get_pairwise_res_1hot_matrix(sample['res'][0])
+    def __get_aug_coords(self, coords: np.ndarray, aug_params: dict = None) -> np.ndarray:
+        if aug_params is None:
+            ret = coords
+        else:
+            dxyz = np.random.uniform(*aug_params['shift_xyz'], coords.shape)
+            ret = coords + dxyz
+        return ret
 
-        print('-')
+    def __get_distance_mat(self, sample: dict, aug_params: dict = None) -> dict:
+        res_pw = get_pairwise_res_1hot_matrix(sample['res'][0]).astype(np.float32)
+        x1, x2 = sample['coords']
+        x1 = self.__get_aug_coords(x1, aug_params=aug_params)
+        x2 = self.__get_aug_coords(x2, aug_params=aug_params)
+        x1 /= 10.
+        x2 /= 10.
+        dst_x1x1 = sdst.cdist(x1, x1).astype(np.float32)
+        dst_x1x2 = sdst.cdist(x1, x2).astype(np.float32)
+        inp = np.dstack([dst_x1x1[..., None], res_pw])
+        ret = {
+            'inp': inp,
+            'out': dst_x1x2,
+            'pdb': sample['pdb']
+        }
+        return ret
+
+    def _get_random_crop(self, dst_info: dict, crop_size: int) -> dict:
+        nrc = dst_info['inp'].shape[0]
+        if crop_size < nrc:
+            rr, rc = np.random.randint(0, nrc - crop_size, 2)
+            inp_crop = dst_info['inp'][rr: rr + crop_size, rc: rc + crop_size, ...]
+            out_crop = dst_info['out'][rr: rr + crop_size, rc: rc + crop_size, ...]
+        else:
+            inp_crop = dst_info['inp']
+            out_crop = dst_info['out']
+        ret = {
+            'inp': inp_crop,
+            'out': out_crop,
+            'pdb': dst_info['pdb']
+        }
+        return ret
 
     def __getitem__(self, item):
         if self.test_mode:
@@ -89,18 +126,22 @@ class DHDDataset(Dataset):
         else:
             rnd_idx = np.random.randint(0, len(self.data))
             sample = self.data[rnd_idx]
-        dst_mat = self.__get_distance_mat(sample, aug_params=self.params_aug)
-
-        print('-')
+        dst_info = self.__get_distance_mat(sample, aug_params=self.params_aug)
+        dst_info = self._get_random_crop(dst_info, self.crop_size)
+        return dst_info
 
 
 def main_run():
     logging.basicConfig(level=logging.INFO)
-    path_idx = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/idx-okl.txt'
-    dataset = DHDDataset(path_idx).build()
+    # path_idx = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/idx-okl.txt'
+    path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
+    cfg = load_config(path_cfg)
+    dataset = DHDDataset(path_idx=cfg['trn_abs'],
+                         crop_size=cfg['crop_size'],
+                         params_aug=cfg['aug'],
+                         test_mode=True).build()
     for xi, x in enumerate(dataset):
-
-        print('-')
+        print('inp-shape/out-shape = {}/{}'.format(x['inp'].shape, x['out'].shape))
     print('-')
 
 
