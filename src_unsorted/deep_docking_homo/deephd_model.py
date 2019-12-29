@@ -167,21 +167,40 @@ class MultiBottleneckSEBlock(nn.Module):
 
 class ASPPResNet(nn.Module):
 
-    def __init__(self, inp: int, out: int, nlin: str = 'elu', attention='cse'):
+    def __init__(self, inp: int, out: int, nlin: str = 'elu', attention='cse', num_stages=4):
         super().__init__()
-        self.stage1_conv = ASPPMultiConvBlock(inp, 64, dilation=(2, 4, 8), ks_prj=3, nlin=nlin, num_conv=2)
-        self.stage1_res = MultiBottleneckSEBlock(64, 32, dilation=(1, 2, 4), nlin=nlin, num_blocks=2, attention=attention)
+        stages_params = [
+            {'inp': inp, 'out': 64,  'emb': 32, 'dil_conv': (2, 4,  8),  'dil_res': (1, 2, 4)},
+            {'inp': 64,  'out': 96,  'emb': 64, 'dil_conv': (4, 8,  16), 'dil_res': (1, 2, 4)},
+            {'inp': 96,  'out': 96,  'emb': 64, 'dil_conv': (8, 16, 32), 'dil_res': (1, 2, 4)},
+            {'inp': 96,  'out': 128, 'emb': 64, 'dil_conv': (8, 16, 32), 'dil_res': (1, 2, 4)},
+            {'inp': 128, 'out': 160, 'emb': 96, 'dil_conv': (8, 16, 32, 48), 'dil_res': (1, 2, 4, 8)},
+        ]
         #
-        self.stage2_conv = ASPPMultiConvBlock(64, 96, dilation=(4, 8, 16), ks_prj=3, nlin=nlin, num_conv=2)
-        self.stage2_res = MultiBottleneckSEBlock(96, 64, dilation=(1, 2, 4), nlin=nlin, num_blocks=3, attention=attention)
+        body = []
+        for stage in range(num_stages):
+            sp = stages_params[stage]
+            stage_conv = ASPPMultiConvBlock(sp['inp'], sp['out'], dilation=sp['dil_conv'], ks_prj=3, nlin=nlin, num_conv=2)
+            stage_res = MultiBottleneckSEBlock(sp['out'], sp['emb'], dilation=sp['dil_res'], nlin=nlin, num_blocks=2, attention=attention)
+            body.extend([stage_conv, stage_res])
+        self.body = nn.Sequential(*body)
+        # self.stage1_conv = ASPPMultiConvBlock(inp, 64, dilation=(2, 4, 8), ks_prj=3, nlin=nlin, num_conv=2)
+        # self.stage1_res = MultiBottleneckSEBlock(64, 32, dilation=(1, 2, 4), nlin=nlin, num_blocks=2, attention=attention)
+        # #
+        # self.stage2_conv = ASPPMultiConvBlock(64, 96, dilation=(4, 8, 16), ks_prj=3, nlin=nlin, num_conv=2)
+        # self.stage2_res = MultiBottleneckSEBlock(96, 64, dilation=(1, 2, 4), nlin=nlin, num_blocks=3, attention=attention)
+        # #
+        # self.stage3_conv = ASPPMultiConvBlock(96, 96, dilation=(8, 16, 32), ks_prj=3, nlin=nlin, num_conv=2)
+        # self.stage3_res = MultiBottleneckSEBlock(96, 64, dilation=(1, 2, 4), nlin=nlin, num_blocks=3, attention=attention)
+        # #
+        # self.stage4_conv = ASPPMultiConvBlock(96, 128, dilation=(8, 16, 32), ks_prj=3, nlin=nlin, num_conv=2)
+        # self.stage4_res = MultiBottleneckSEBlock(128, 64, dilation=(1, 2, 4), nlin=nlin, num_blocks=3, attention=attention)
+        # #
+        # self.stage5_conv = ASPPMultiConvBlock(128, 160, dilation=(8, 16, 32, 48), ks_prj=3, nlin=nlin, num_conv=2)
+        # self.stage5_res = MultiBottleneckSEBlock(160, 64, dilation=(1, 2, 4, 8), nlin=nlin, num_blocks=3, attention=attention)
         #
-        self.stage3_conv = ASPPMultiConvBlock(96, 96, dilation=(8, 16, 32), ks_prj=3, nlin=nlin, num_conv=2)
-        self.stage3_res = MultiBottleneckSEBlock(96, 64, dilation=(1, 2, 4), nlin=nlin, num_blocks=3, attention=attention)
-        #
-        self.stage3_conv = ASPPMultiConvBlock(96, 104, dilation=(8, 16, 32), ks_prj=3, nlin=nlin, num_conv=2)
-        self.stage3_res = MultiBottleneckSEBlock(104, 64, dilation=(1, 2, 4), nlin=nlin, num_blocks=3, attention=attention)
-        #
-        self.out_block = nn.Conv2d(104, out, kernel_size=1)
+        num_ = stages_params[num_stages - 1]['out']
+        self.out_block = nn.Conv2d(num_, out, kernel_size=1)
         #
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -191,12 +210,15 @@ class ASPPResNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
-        x = self.stage1_conv(x)
-        x = self.stage1_res(x)
-        x = self.stage2_conv(x)
-        x = self.stage2_res(x)
-        x = self.stage3_conv(x)
-        x = self.stage3_res(x)
+        # x = self.stage1_conv(x)
+        # x = self.stage1_res(x)
+        # x = self.stage2_conv(x)
+        # x = self.stage2_res(x)
+        # x = self.stage3_conv(x)
+        # x = self.stage3_res(x)
+        # x = self.stage4_conv(x)
+        # x = self.stage4_res(x)
+        x = self.body(x)
         x = self.out_block(x)
         return x
 
@@ -216,11 +238,11 @@ def main_debug():
     # m = ASPPMultiConvBlock(inp_dim=3, out_dim=16, dilation=(2, 4, 16, 32), num_conv=3, ks=5, ks_prj=3, nlin='elu')
     # m = Unet(encoder_weights=None, encoder_name='vgg19')
     # m = Unet(encoder_weights=None, encoder_name='senet154')#, attention_type='scse')
-    m = ASPPResNet(3, 1)
+    m = ASPPResNet(3, 1, num_stages=4)
     print(m)
     # m = resnet50(num_classes=1)
     print(count_model_parameters(m))
-    x = torch.zeros([4, 3, 64, 64])
+    x = torch.zeros([4, 3, 128, 128])
     x[:, :, x.shape[2] // 2, x.shape[3] // 2] = 1
     # m = nn.Sequential(*[torch.nn.Conv2d(1, 1, 3, dilation=x, padding=x) for x in [4, 8, 16]])
     # for z in m.modules():
