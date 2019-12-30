@@ -110,11 +110,11 @@ class SCSEBlock(nn.Module):
         return x * self.cSE(x) + x * self.sSE(x)
 
 
-def get_attention(ch: int, atype: str = 'cse'):
+def get_attention(ch: int, atype: str = 'cse', nlin: str = 'relu'):
     if atype == 'cse':
-        return CSEBlock(ch=ch)
+        return CSEBlock(ch=ch, nlin=nlin)
     elif atype == 'scse':
-        return SCSEBlock(ch=ch)
+        return SCSEBlock(ch=ch, nlin=nlin)
     elif atype is None:
         return nn.Identity()
     else:
@@ -132,7 +132,7 @@ class BottleneckASPPSEBlock(nn.Module):
         self.conv_spatial = ASPPMultiConvBlock(emb_dim, emb_dim, ks=ks, nlin=nlin,
                                                num_conv=num_conv, dilation=dilation)
         self.conv_prj_out = ConvBN(emb_dim, inp_dim, ks=1, nlin=None)
-        self.attention = get_attention(inp_dim, attention_type)
+        self.attention = get_attention(inp_dim, attention_type, nlin='relu')
         self.out_activation = get_nlin(nlin)
 
     def forward(self, x):
@@ -165,10 +165,11 @@ class MultiBottleneckSEBlock(nn.Module):
         return self.body(x)
 
 
-class ASPPResNet(nn.Module):
+class ASPPResNetSE(nn.Module):
 
     def __init__(self, inp: int, out: int, nlin: str = 'elu', attention='cse', num_stages=4):
         super().__init__()
+        self.num_out = out
         stages_params = [
             {'inp': inp, 'out': 64,  'emb': 32, 'dil_conv': (2, 4,  8),  'dil_res': (1, 2, 4), 'numc': 2, 'numr': 2},
             {'inp': 64,  'out': 96,  'emb': 64, 'dil_conv': (4, 8,  16), 'dil_res': (1, 2, 4), 'numc': 2, 'numr': 3},
@@ -222,6 +223,8 @@ class ASPPResNet(nn.Module):
         # x = self.stage4_res(x)
         x = self.body(x)
         x = self.out_block(x)
+        if self.num_out == 1:
+            x = torch.squeeze(x, dim=1)
         return x
 
 
@@ -240,7 +243,7 @@ def main_debug():
     # m = ASPPMultiConvBlock(inp_dim=3, out_dim=16, dilation=(2, 4, 16, 32), num_conv=3, ks=5, ks_prj=3, nlin='elu')
     # m = Unet(encoder_weights=None, encoder_name='vgg19')
     # m = Unet(encoder_weights=None, encoder_name='senet154')#, attention_type='scse')
-    m = ASPPResNet(3, 1, num_stages=4)
+    m = ASPPResNetSE(3, 1, num_stages=4)
     print(m)
     # m = resnet50(num_classes=1)
     print(count_model_parameters(m))
