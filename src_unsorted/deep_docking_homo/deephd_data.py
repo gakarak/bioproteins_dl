@@ -95,7 +95,7 @@ class DHDDataset(Dataset):
         x1 /= 10.
         x2 /= 10.
         dst_x1x1 = sdst.cdist(x1, x1).astype(np.float32)
-        dst_x1x2 = sdst.cdist(x1, x2).astype(np.float32)
+        dst_x1x2 = sdst.cdist(x1, x2).astype(np.float32) < 1.4
         inp = np.dstack([dst_x1x1[..., None], res_pw])
         ret = {
             'inp': inp,
@@ -139,9 +139,14 @@ def main_run():
     dataset = DHDDataset(path_idx=cfg['trn_abs'],
                          crop_size=cfg['crop_size'],
                          params_aug=cfg['aug'],
-                         test_mode=True).build()
+                         test_mode=False).build()
     for xi, x in enumerate(dataset):
         print('inp-shape/out-shape = {}/{}'.format(x['inp'].shape, x['out'].shape))
+        plt.subplot(1, 2, 1)
+        plt.imshow(x['inp'][..., 0])
+        plt.subplot(1, 2, 2)
+        plt.imshow(x['out'])
+        plt.show()
     print('-')
 
 
