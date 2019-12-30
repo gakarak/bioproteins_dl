@@ -53,12 +53,13 @@ def get_pairwise_res_1hot_matrix(res: np.ndarray, res2idx: dict = None) -> np.nd
 
 class DHDDataset(Dataset):
 
-    def __init__(self, path_idx: str, crop_size: int, params_aug: dict = None, test_mode=False):
+    def __init__(self, path_idx: str, crop_size: int, params_aug: dict = None, test_mode=False, num_fake_iters=100):
         self.path_idx = path_idx
         self.params_aug = params_aug
         self.test_mode = test_mode
         self.crop_size = crop_size
         self.data = None
+        self.num_fake_iters = num_fake_iters
 
     def build(self):
         self.wdir = os.path.dirname(self.path_idx)
@@ -77,7 +78,7 @@ class DHDDataset(Dataset):
         if self.test_mode:
             return len(self.data)
         else:
-            return 100000000
+            return self.num_fake_iters
 
     def __get_aug_coords(self, coords: np.ndarray, aug_params: dict = None) -> np.ndarray:
         if aug_params is None:
@@ -114,7 +115,7 @@ class DHDDataset(Dataset):
             inp_crop = dst_info['inp']
             out_crop = dst_info['out']
         ret = {
-            'inp': inp_crop,
+            'inp': inp_crop.transpose((2, 0, 1)),
             'out': out_crop,
             'pdb': dst_info['pdb']
         }
