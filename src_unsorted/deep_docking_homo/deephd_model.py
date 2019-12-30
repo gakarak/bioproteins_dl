@@ -178,7 +178,7 @@ class ASPPResNetSE(nn.Module):
             {'inp': 128, 'out': 160, 'emb': 96, 'dil_conv': (8, 16, 32, 48), 'dil_res': (1, 2, 4, 8), 'numc': 2, 'numr': 3},
         ]
         #
-        body = []
+        body = [nn.BatchNorm2d(stages_params[0]['inp'])]
         for stage in range(num_stages):
             sp = stages_params[stage]
             stage_conv = ASPPMultiConvBlock(sp['inp'], sp['out'], dilation=sp['dil_conv'],

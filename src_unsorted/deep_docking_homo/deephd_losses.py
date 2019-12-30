@@ -11,6 +11,10 @@ from segmentation_models_pytorch.utils.losses import BCEDiceLoss, BCEJaccardLoss
 def build_loss_by_name(loss_name: str) -> nn.Module:
     if loss_name == 'bce':
         return nn.BCEWithLogitsLoss()
+    elif loss_name == 'l1':
+        return nn.L1Loss()
+    elif loss_name == 'l2':
+        return nn.MSELoss()
     elif loss_name == 'bcedice':
         return BCEDiceLoss()
     elif loss_name == 'bcejaccard':

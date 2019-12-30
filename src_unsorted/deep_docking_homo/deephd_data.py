@@ -68,7 +68,9 @@ class DHDDataset(Dataset):
         t1 = time.time()
         logging.info('\t::load dataset into memory, #samples = {}'.format(len(self.data_idx)))
         self.data = [pkl.load(open(x, 'rb')) for x in self.data_idx['path_abs']]
-        self.data = [x for x in self.data if x['res'].shape[1] > self.crop_size]
+        self.data = [x for x in self.data if (x['res'].shape[1] > self.crop_size)
+                     and (len(set(x['res'][0]) - set(all_res)) < 1)
+                     and (len(set(x['res'][1]) - set(all_res)) < 1)]
         dt = time.time() - t1
         logging.info('\t\t\t... done, dt ~ {:0.2f} (s), #samples={} with size >= {}'
                      .format(dt, len(self.data), self.crop_size))
@@ -96,7 +98,7 @@ class DHDDataset(Dataset):
         x1 /= 10.
         x2 /= 10.
         dst_x1x1 = sdst.cdist(x1, x1).astype(np.float32)
-        dst_x1x2 = sdst.cdist(x1, x2).astype(np.float32) < 1.4
+        dst_x1x2 = sdst.cdist(x1, x2).astype(np.float32)# < 1.4
         inp = np.dstack([dst_x1x1[..., None], res_pw])
         ret = {
             'inp': inp,
@@ -128,23 +130,27 @@ class DHDDataset(Dataset):
             rnd_idx = np.random.randint(0, len(self.data))
             sample = self.data[rnd_idx]
         dst_info = self.__get_distance_mat(sample, aug_params=self.params_aug)
-        dst_info = self._get_random_crop(dst_info, self.crop_size)
+        if not self.test_mode:
+            dst_info = self._get_random_crop(dst_info, self.crop_size)
+        else:
+            dst_info = self._get_random_crop(dst_info, crop_size=len(sample['res'][0]))
         return dst_info
 
 
 def main_run():
     logging.basicConfig(level=logging.INFO)
     # path_idx = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/idx-okl.txt'
-    path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
+    # path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
+    path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
     cfg = load_config(path_cfg)
     dataset = DHDDataset(path_idx=cfg['trn_abs'],
                          crop_size=cfg['crop_size'],
                          params_aug=cfg['aug'],
-                         test_mode=False).build()
+                         test_mode=True).build()
     for xi, x in enumerate(dataset):
         print('inp-shape/out-shape = {}/{}'.format(x['inp'].shape, x['out'].shape))
         plt.subplot(1, 2, 1)
-        plt.imshow(x['inp'][..., 0])
+        plt.imshow(x['inp'][0])
         plt.subplot(1, 2, 2)
         plt.imshow(x['out'])
         plt.show()

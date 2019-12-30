@@ -63,7 +63,7 @@ class DeepHDPipeline(LightningModule):
         self.dataset_trn = DHDDataset(path_idx=self.cfg['trn_abs'], crop_size=self.cfg['crop_size'],
                                       params_aug=self.cfg['aug'], test_mode=False, num_fake_iters=self.cfg['iter_per_epoch']).build()
         self.dataset_val = DHDDataset(path_idx=self.cfg['val_abs'], crop_size=self.cfg['crop_size'],
-                                      params_aug=None, test_mode=False).build()
+                                      params_aug=None, test_mode=True).build()
         model_prefix = self._get_model_prefix()
         self.path_model = os.path.join(self.cfg['wdir'], model_dir,
                                        os.path.basename(self.path_cfg) + '_model_' + model_prefix + '_l{}'.format(self.cfg['loss']))
@@ -80,6 +80,17 @@ class DeepHDPipeline(LightningModule):
         loss = self.trn_loss(y_pr, y_gt)
         tensorboard_logs = {'train_loss': loss}
         return {'loss': loss, 'log': tensorboard_logs}
+        # return {'loss': tensorboard_logs}
+
+    # def training_end(self, outputs):
+    #     keys_ = list(outputs[0].keys())
+    #     # ret_avg = {f'{k}': torch.stack([x[k] for x in outputs]).mean() for k in keys_}
+    #     k = 'train_loss'
+    #     ret_avg = {k: torch.stack([x[k] for x in outputs]).mean()}
+    #     # ret_avg =
+    #     tensorboard_logs = ret_avg
+    #     ret = {'log': tensorboard_logs}
+    #     return ret
 
     def validation_step(self, batch, batch_nb):
         x = batch['inp']
@@ -96,7 +107,7 @@ class DeepHDPipeline(LightningModule):
         return ret
 
     def configure_optimizers(self):
-        ret = torch.optim.Adam(self.model.parameters(), lr=2e-4)
+        ret = torch.optim.Adam(self.model.parameters(), lr=1e-4)
         return ret
 
     @pl.data_loader
