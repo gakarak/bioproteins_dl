@@ -61,9 +61,9 @@ class DeepHDPipeline(LightningModule):
         # path_trn = self.cfg['trn_abs']
         # path_val = self.cfg['val_abs']
         self.dataset_trn = DHDDataset(path_idx=self.cfg['trn_abs'], crop_size=self.cfg['crop_size'],
-                                      params_aug=self.cfg['aug'], test_mode=False)
+                                      params_aug=self.cfg['aug'], test_mode=False).build()
         self.dataset_val = DHDDataset(path_idx=self.cfg['val_abs'], crop_size=self.cfg['crop_size'],
-                                      params_aug=None, test_mode=False)
+                                      params_aug=None, test_mode=False).build()
         model_prefix = self._get_model_prefix()
         self.path_model = os.path.join(self.cfg['wdir'], model_dir,
                                        os.path.basename(self.path_cfg) + '_model_' + model_prefix)

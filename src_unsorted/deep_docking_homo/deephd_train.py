@@ -23,8 +23,8 @@ from pytorch_lightning.logging import TestTubeLogger
 
 def main_train():
     logging.basicConfig(level=logging.INFO)
-    path_cfg = '/mnt/data4t2/data/yield_prediction/4k_ua_fields_yelds_2014-2019/cfg-maize_grain.json'
-    pipeline = DeepHDPipeline(path_cfg).build()
+    path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
+    pipeline = DeepHDPipeline(path_cfg, num_workers=24).build()
     checkpoint_callback = ModelCheckpoint(filepath=os.path.join(pipeline.path_model, 'results'),
                                           verbose=True, monitor='val_loss', mode='min')
     logger = TestTubeLogger(save_dir=pipeline.path_model, version=1)
