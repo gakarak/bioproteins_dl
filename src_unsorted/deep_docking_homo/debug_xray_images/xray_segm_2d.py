@@ -4,6 +4,7 @@ __author__ = 'ar'
 
 import os
 import time
+import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -72,7 +73,7 @@ class XRay2DPipeline(LightningModule):
         self.trn_loss = build_loss_by_name(loss_trn)
         self.val_losses = {'val_loss': build_loss_by_name(loss_trn)}
         for x in ['bcejaccard', 'jaccard']:
-            self.val_losses[x] = build_loss_by_name(x)
+            self.val_losses[f'val_loss_{x}'] = build_loss_by_name(x)
 
     def build(self):
         self.dataset_trn = XRay2dDataset(self.path_trn).build()
@@ -121,11 +122,13 @@ class XRay2DPipeline(LightningModule):
 
 def main_train():
     logging.basicConfig(level=logging.INFO)
-    path_idx_trn = '/home/ar/gitlab.com/rsna-pneumonia.git/data/resources/idx_trn0.txt'
-    path_idx_val = '/home/ar/gitlab.com/rsna-pneumonia.git/data/resources/idx_val0.txt'
+    # path_idx_trn = '/home/ar/gitlab.com/rsna-pneumonia.git/data/resources/idx_trn0.txt'
+    # path_idx_val = '/home/ar/gitlab.com/rsna-pneumonia.git/data/resources/idx_val0.txt'
+    path_idx_trn = '/mnt/data4t3/data/deepdocking_experiments/xray_data/idx_trn0.txt'
+    path_idx_val = '/mnt/data4t3/data/deepdocking_experiments/xray_data/idx_val0.txt'
     loss_trn = 'bce'
-    batch_size = 2
-    path_model = path_idx_trn + '_model_aspp_l{}_b{}'.format(loss_trn, batch_size)
+    batch_size = 4
+    path_model = os.path.join(os.path.dirname(path_idx_trn), 'models', os.path.basename(path_idx_trn) + '_model_aspp_l{}_b{}'.format(loss_trn, batch_size))
     pipeline = XRay2DPipeline(path_idx_trn, path_idx_val, num_workers=2,
                               loss_trn=loss_trn, batch_size=batch_size).build()
     logging.info(pipeline.model)
@@ -143,5 +146,41 @@ def main_train():
     trainer.fit(pipeline)
     print('-')
 
+
+def main_evaluate():
+    logging.basicConfig(level=logging.INFO)
+    # path_idx_trn = '/home/ar/gitlab.com/rsna-pneumonia.git/data/resources/idx_trn0.txt'
+    # path_idx_val = '/home/ar/gitlab.com/rsna-pneumonia.git/data/resources/idx_val0.txt'
+    path_idx_trn = '/mnt/data4t3/data/deepdocking_experiments/xray_data/idx_trn0.txt'
+    path_idx_val = '/mnt/data4t3/data/deepdocking_experiments/xray_data/idx_val0.txt'
+    loss_trn = 'bce'
+    batch_size = 4
+    path_model = os.path.join(os.path.dirname(path_idx_trn), 'models', os.path.basename(path_idx_trn) + '_model_aspp_l{}_b{}'.format(loss_trn, batch_size))
+    logger = TestTubeLogger(save_dir=path_model, version=1)
+    weights_path = glob.glob(os.path.join(logger.experiment.get_logdir(), '../../../results/*.ckpt'))[0]
+    # pipeline.load_state_dict(torch.load(weights_path, map_location=torch.device('cpu'))['state_dict'])
+    pipeline = XRay2DPipeline(path_idx_trn, path_idx_val, num_workers=0, loss_trn=loss_trn, batch_size=batch_size).build()
+    pipeline.load_state_dict(torch.load(weights_path)['state_dict'])
+    model = pipeline.model.to('cuda:0')
+    dataloader_ = pipeline.val_dataloader()[0]
+    len_dataloader = len(dataloader_)
+    pipeline.eval()
+    with torch.no_grad():
+        for xi, x in enumerate(dataloader_):
+            x_inp = x['img'].to('cuda:0')
+            y_gt = x['msk'].cpu().numpy()[0]
+            y_pr = torch.sigmoid(model.forward(x_inp)).cpu().numpy()[0]
+            plt.subplot(1, 3, 1)
+            plt.imshow(y_pr)
+            plt.subplot(1, 3, 2)
+            plt.imshow(y_gt)
+            plt.subplot(1, 3, 3)
+            plt.imshow(x_inp.cpu().numpy()[0, 0])
+            plt.show()
+            print('-')
+    print('-')
+
+
 if __name__ == '__main__':
-    main_train()
+    # main_train()
+    main_evaluate()
