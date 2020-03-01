@@ -110,9 +110,9 @@ class DHDDataset(Dataset):
     def _get_random_crop(self, dst_info: dict, crop_size: int) -> dict:
         nrc = dst_info['inp'].shape[0]
         if crop_size < nrc:
-            rr, rc = np.random.randint(0, nrc - crop_size, 2)
-            inp_crop = dst_info['inp'][rr: rr + crop_size, rc: rc + crop_size, ...]
-            out_crop = dst_info['out'][rr: rr + crop_size, rc: rc + crop_size, ...]
+            rr, cc = np.random.randint(0, nrc - crop_size, 2)
+            inp_crop = dst_info['inp'][rr: rr + crop_size, cc: cc + crop_size, ...]
+            out_crop = dst_info['out'][rr: rr + crop_size, cc: cc + crop_size, ...]
         else:
             inp_crop = dst_info['inp']
             out_crop = dst_info['out']
@@ -140,13 +140,13 @@ class DHDDataset(Dataset):
 def main_run():
     logging.basicConfig(level=logging.INFO)
     # path_idx = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/idx-okl.txt'
-    # path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
-    path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
+    path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
+    # path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
     cfg = load_config(path_cfg)
     dataset = DHDDataset(path_idx=cfg['trn_abs'],
                          crop_size=cfg['crop_size'],
                          params_aug=cfg['aug'],
-                         test_mode=True).build()
+                         test_mode=False).build()
     for xi, x in enumerate(dataset):
         print('inp-shape/out-shape = {}/{}'.format(x['inp'].shape, x['out'].shape))
         plt.subplot(1, 2, 1)
