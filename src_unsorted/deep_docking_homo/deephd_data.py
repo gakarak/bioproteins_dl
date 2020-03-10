@@ -140,13 +140,14 @@ class DHDDataset(Dataset):
 def main_run():
     logging.basicConfig(level=logging.INFO)
     # path_idx = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/idx-okl.txt'
-    path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
+    # path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
     # path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
+    path_cfg = '/home/ar/data/bioinformatics/deep_hd/cfg.json'
     cfg = load_config(path_cfg)
     dataset = DHDDataset(path_idx=cfg['trn_abs'],
                          crop_size=cfg['crop_size'],
                          params_aug=cfg['aug'],
-                         test_mode=False).build()
+                         test_mode=True).build()
     for xi, x in enumerate(dataset):
         print('inp-shape/out-shape = {}/{}'.format(x['inp'].shape, x['out'].shape))
         plt.subplot(1, 2, 1)

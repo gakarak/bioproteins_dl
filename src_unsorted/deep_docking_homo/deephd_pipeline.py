@@ -15,7 +15,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch import nn
 from deephd_losses import build_loss_by_name
-from deephd_model import ASPPResNetSE
+from deephd_model import ASPPResNetSE, build_model_from_cfg
 from deephd_data import load_config, DHDDataset
 from pytorch_lightning import LightningModule
 import pytorch_lightning as pl
@@ -41,9 +41,10 @@ class DeepHDPipeline(LightningModule):
         self.num_workers = num_workers
         self.cfg = load_config(self.path_cfg)
         self.model_prefix = self.cfg['model']['type']
-        self.model = ASPPResNetSE(inp=43, out=1,
-                                  nlin=self.cfg['model']['nlin'],
-                                  num_stages=self.cfg['model']['num_stages'])
+        self.model = build_model_from_cfg(self.cfg)
+        # self.model = ASPPResNetSE(inp=43, out=1,
+        #                           nlin=self.cfg['model']['nlin'],
+        #                           num_stages=self.cfg['model']['num_stages'])
         self.trn_loss = build_loss_by_name(self.cfg['loss'])
         self.val_losses = {}
         self.val_losses['val_loss'] = build_loss_by_name(self.cfg['loss'])
