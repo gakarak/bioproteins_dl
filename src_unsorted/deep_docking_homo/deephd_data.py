@@ -51,23 +51,59 @@ def get_pairwise_res_1hot_matrix(res: np.ndarray, res2idx: dict = None) -> np.nd
     return XY
 
 
+def _load_idx(path_idx: str) -> pd.DataFrame:
+    wdir_ = os.path.dirname(path_idx)
+    data_ = pd.read_csv(path_idx)
+    keys_ = data_.keys()
+    for k in keys_:
+        data_[f'{k}_abs'] = [os.path.join(wdir_, x) for x in data_[k]]
+    return data_
+
+
+def load_one_sample(row: pd.Series, load_ca: bool, load_cb: bool, load_sasa: bool, sasa_radiuses: tuple) -> dict:
+    data_ca = pkl.load(open(row['path_ca_abs'], 'rb')) if load_ca else None
+    data_cb = pkl.load(open(row['path_cb_abs'], 'rb')) if load_cb else None
+    if load_sasa:
+        data_sasa = pd.read_csv(row['path_sasa_abs'])
+        print('-')
+    else:
+        data_sasa = None
+    return {
+        'ca': data_ca,
+        'cb': data_cb,
+        'sasa': data_sasa
+    }
+
+
 class DHDDataset(Dataset):
 
-    def __init__(self, path_idx: str, crop_size: int, params_aug: dict = None, test_mode=False, num_fake_iters=100):
+    def __init__(self, path_idx: str, crop_size: int, params_aug: dict = None,
+                 num_fake_iters=100, test_mode=False, test_mode_crop=False,
+                 use_ca=True, use_cb=True, use_sasa=True,
+                 sasa_radiuses=(3, ), crop_coef=2**5):
         self.path_idx = path_idx
         self.params_aug = params_aug
         self.test_mode = test_mode
+        self.test_mode_crop = test_mode_crop
         self.crop_size = crop_size
         self.data = None
         self.num_fake_iters = num_fake_iters
+        #
+        self.use_ca = use_ca
+        self.use_cb = use_cb
+        self.use_sasa = use_sasa
+        self.sasa_radiuses = sasa_radiuses
+        self.crop_coef = crop_coef
 
     def build(self):
         self.wdir = os.path.dirname(self.path_idx)
-        self.data_idx = pd.read_csv(self.path_idx)
-        self.data_idx['path_abs'] = [os.path.join(self.wdir, x) for x in self.data_idx['path']]
+        self.data_idx = _load_idx(self.path_idx)
         t1 = time.time()
         logging.info('\t::load dataset into memory, #samples = {}'.format(len(self.data_idx)))
-        self.data = [pkl.load(open(x, 'rb')) for x in self.data_idx['path_abs']]
+        # self.data = [pkl.load(open(x, 'rb')) for x in self.data_idx['path_abs']]
+        self.data = [load_one_sample(row, load_ca=self.use_ca, load_cb=self.use_cb,
+                                     load_sasa=self.use_cb, sasa_radiuses=self.sasa_radiuses)
+                     for _, row in self.data_idx.iterrows()]
         self.data = [x for x in self.data if (x['res'].shape[1] > self.crop_size)
                      and (len(set(x['res'][0]) - set(all_res)) < 1)
                      and (len(set(x['res'][1]) - set(all_res)) < 1)]

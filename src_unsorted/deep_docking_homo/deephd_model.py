@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'ar'
 
+import copy
 import numpy as np
 import torch
 from torch import nn
@@ -9,7 +10,11 @@ from torch import functional as F
 from torchvision.models import resnet34
 from typing import Union as U, Optional as O
 from segmentation_models_pytorch import Unet, FPN, Linknet, PSPNet
+from segmentation_models_pytorch.encoders import get_encoder, get_encoder_names, encoders
 from typing import Optional as O, Union as U
+import pytorch_toolbelt
+from pytorch_toolbelt.modules import encoders as E
+from pytorch_toolbelt.modules import decoders as D
 
 
 def build_model_from_cfg(cfg: dict) -> nn.Module:
@@ -287,8 +292,37 @@ def main_debug():
     print('-')
 
 
+def get_encoder_custom(encoder_name: str, encoder_params: dict, depth: int, in_channels=3, weights=None):
+    Encoder = encoders[encoder_name]["encoder"]
+    encoder_params.update(depth=depth)
+    encoder = Encoder(**encoder_params)
+    encoder.set_in_channels(in_channels)
+    return encoder
+
+
+
+def main_debug_segmm():
+    x_inp = torch.zeros([1, 3, 256, 256], dtype=torch.float32)
+    # encoder: E.EncoderModule = E.SEResnet50Encoder()
+    # encoder_name = 'resnet34'
+    encoder_name = 'densenet121'
+    encoder_params = copy.deepcopy(encoders[encoder_name])
+    encoder_params['params']['out_channels'] = (3, 64, 64, 128, 256, 256, 256, 256)
+    # encoder_params['params']['layers'] = [3, 4, 4, 4, 6, 3]
+    encoder_params['params']['block_config'] = [6, 12, 24, 12, 12, 16]
+    #
+    model_enc = get_encoder_custom(encoder_name, encoder_params['params'], depth=6)
+
+
+
+    y = model_enc(x_inp)
+    print('-')
+
+
+
 if __name__ == '__main__':
-    main_debug()
+    # main_debug()
+    main_debug_segmm()
 
 
 
