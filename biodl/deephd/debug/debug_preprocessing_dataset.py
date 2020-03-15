@@ -34,7 +34,7 @@ def prepare_coords(path_pdb: str, build_separate_models=True) -> bool:
         if len(tmp_['models']) > 2:
             raise NotImplementedError('#models > 2: [{}]'.format(len(tmp_['models'])))
         if tmp_['len_ca'] != tmp_['len_cb']:
-            raise NotImplementedError('#ca <> #cb, ca/ab = {}{}'.format( tmp_['len_ca'], tmp_['len_cb'] ))
+            raise NotImplementedError('#ca <> #cb, ca/ab = {}/{}'.format( tmp_['len_ca'], tmp_['len_cb'] ))
         if build_separate_models:
             ppb = PPBuilder()
             for mi, m in enumerate(tmp_['models']):
@@ -43,7 +43,7 @@ def prepare_coords(path_pdb: str, build_separate_models=True) -> bool:
                     continue
                 path_model_out_tmp = get_temp_path(path_model_out, root_dir=tmp_root_dir)
                 pdb_io = PDBIO()
-                pdb_io.set_structure(copy.deepcopy(m.copy()))
+                pdb_io.set_structure(m)
                 # ms = ppb.build_peptides(m)
                 pdb_io.save(path_model_out_tmp)
                 shutil.move(path_model_out_tmp, path_model_out)

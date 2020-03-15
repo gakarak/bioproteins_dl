@@ -31,7 +31,7 @@ def read_homo_pdb_coords_cacb(path_pdb: str, calc_dst=True,
     models = []
     for m in models_:
         for c in list(m.get_chains()):
-            models.append(copy.deepcopy(c))
+            models.append(c)
     # models = list(ppb.build_peptides(pdb_parser.get_structure(os.path.basename(path_pdb), path_pdb)))
     # if len(models) != 2:
     #     raise IndexError('Invalid number of chains, required 2 chains in PDB file, but present only {}'.format(len(models)))
