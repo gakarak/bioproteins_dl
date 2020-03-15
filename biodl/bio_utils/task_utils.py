@@ -19,7 +19,12 @@ def default_print_task_function(idx, idx_num, step_, task_name: str, level=1):
 
 def task_function_helper_default(pdata, funtion_ptr):
     idx, idx_num, print_fun, params_ = pdata
-    ret = funtion_ptr(*params_)
+    if isinstance(params_, (list, tuple)):
+        ret = funtion_ptr(*params_)
+    elif isinstance(params_, dict):
+        ret = funtion_ptr(**params_)
+    else:
+        ret = funtion_ptr(params_)
     print_fun(idx, idx_num)
     return ret
 
@@ -39,7 +44,7 @@ def parallel_tasks_run(task_function, task_data: list,
     else:
         step_print = None
     print_function = partial(print_function, step_=step_print, task_name=task_name, level=level)
-    task_data = [[xi, len(task_data), print_function, x if isinstance(x, list) else [x]]
+    task_data = [[xi, len(task_data), print_function, x if isinstance(x, (list, tuple, dict)) else [x]]
                  for xi, x in enumerate(task_data)]
     if (len(task_data) < 2) or (num_threads < 2):
         ret = [task_function(x) for x in task_data]

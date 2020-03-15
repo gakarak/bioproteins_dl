@@ -3,6 +3,7 @@
 __author__ = 'ar'
 
 import os
+import copy
 import numpy as np
 import pandas as pd
 import prody
@@ -13,10 +14,13 @@ from itertools import combinations
 from Bio.PDB import PDBParser
 from Bio.PDB.Polypeptide import PPBuilder
 from Bio import BiopythonWarning
+from Bio.PDB.PDBExceptions import PDBConstructionException, PDBConstructionWarning
 import warnings
 with warnings.catch_warnings():
+    warnings.simplefilter('ignore', PDBConstructionException)
+    warnings.simplefilter('ignore', PDBConstructionWarning)
     warnings.simplefilter('ignore', BiopythonWarning)
-
+    
 
 def read_homo_pdb_coords_cacb(path_pdb: str, calc_dst=True,
                               return_models=False, pdb_parser=None) -> dict:
@@ -27,7 +31,7 @@ def read_homo_pdb_coords_cacb(path_pdb: str, calc_dst=True,
     models = []
     for m in models_:
         for c in list(m.get_chains()):
-            models.append(c)
+            models.append(copy.deepcopy(c))
     # models = list(ppb.build_peptides(pdb_parser.get_structure(os.path.basename(path_pdb), path_pdb)))
     # if len(models) != 2:
     #     raise IndexError('Invalid number of chains, required 2 chains in PDB file, but present only {}'.format(len(models)))
@@ -72,6 +76,8 @@ def read_homo_pdb_coords_cacb(path_pdb: str, calc_dst=True,
         'dst_pw_ca': models_dstm_pw_ca,
         'dst_pw_cb': models_dstm_pw_cb,
         'res': models_res,
+        'len_ca': len(models_coords_ca[0]),
+        'len_cb': len(models_coords_cb[0]),
         'num_ca': len(models_coords_ca),
         'num_cb': len(models_coords_cb),
         'pdb': os.path.basename(path_pdb),
