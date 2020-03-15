@@ -16,7 +16,7 @@ import scipy.spatial.distance as sdst
 from biodl.deephd import read_homo_pdb_coords_cacb
 from biodl.bio_utils import parallel_tasks_run_def, get_temp_path
 import logging
-from fire
+import fire
 
 from Bio.PDB import PDBIO
 from Bio.PDB import PDBParser
