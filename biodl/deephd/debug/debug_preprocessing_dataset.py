@@ -16,6 +16,7 @@ import scipy.spatial.distance as sdst
 from biodl.deephd import read_homo_pdb_coords_cacb
 from biodl.bio_utils import parallel_tasks_run_def, get_temp_path
 import logging
+from fire
 
 from Bio.PDB import PDBIO
 from Bio.PDB import PDBParser
@@ -59,8 +60,8 @@ def prepare_coords(path_pdb: str, build_separate_models=True) -> bool:
         
 
 
-def main_debug_pproc():
-    path_idx = '/mnt/data1T/data/annaha/homod/idx-pdb-raw.txt'
+def main_debug_pproc(path_idx: str, jobs=1):
+    # path_idx = '/mnt/data1T/data/annaha/homod/idx-pdb-raw.txt'
     path_log = path_idx + '_log.txt'
     logging.basicConfig(level=logging.INFO, filename=path_log,
                         format='%(asctime)s %(name)s %(levelname)s:%(message)s',
@@ -71,9 +72,10 @@ def main_debug_pproc():
     wdir = os.path.dirname(path_idx)
     paths_pdb = [os.path.join(wdir, x) for x in pd.read_csv(path_idx)['path']]
     task_data = [{'path_pdb': x} for x in paths_pdb]
-    ret = parallel_tasks_run_def(prepare_coords, task_data, num_workers=16)
+    ret = parallel_tasks_run_def(prepare_coords, task_data, num_workers=jobs)
     print('-')
 
 
 if __name__ == '__main__':
-    main_debug_pproc()
+    fire.Fire(main_debug_pproc)
+    
