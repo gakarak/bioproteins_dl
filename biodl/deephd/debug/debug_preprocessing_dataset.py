@@ -71,7 +71,7 @@ def main_debug_pproc():
     wdir = os.path.dirname(path_idx)
     paths_pdb = [os.path.join(wdir, x) for x in pd.read_csv(path_idx)['path']]
     task_data = [{'path_pdb': x} for x in paths_pdb]
-    ret = parallel_tasks_run_def(prepare_coords, task_data, num_workers=1)
+    ret = parallel_tasks_run_def(prepare_coords, task_data, num_workers=16)
     print('-')
 
 
