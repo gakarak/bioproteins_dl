@@ -3,6 +3,7 @@
 __author__ = 'ar'
 
 import os
+import sys
 import glob
 from pympler.asizeof import asizeof
 import numpy as np
@@ -11,9 +12,9 @@ import prody
 import matplotlib.pyplot as plt
 import scipy.spatial.distance as sdst
 from itertools import combinations
-from ..dhd_core import read_homo_pdb_coords_cacb
-from ...bio_utils.task_utils import parallel_tasks_run_def
-
+from biodl.deephd import read_homo_pdb_coords_cacb
+from biodl.bio_utils import parallel_tasks_run_def
+import logging
 
 from Bio.PDB import PDBIO
 from Bio.PDB import PDBParser
@@ -25,12 +26,10 @@ with warnings.catch_warnings():
 
 
 def main_debug_pproc():
-
+    logging.basicConfig(level=logging.INFO)
 
     print('-')
 
 
 if __name__ == '__main__':
-
-
-    print('-')
+    main_debug_pproc()
