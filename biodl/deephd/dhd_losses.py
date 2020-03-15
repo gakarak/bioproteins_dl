@@ -5,7 +5,8 @@ __author__ = 'ar'
 
 import torch
 from torch import nn
-from segmentation_models_pytorch.utils.losses import BCEDiceLoss, BCEJaccardLoss, DiceLoss, JaccardLoss
+from pytorch_toolbelt.losses import JointLoss
+from segmentation_models_pytorch.utils.losses import DiceLoss, JaccardLoss#, BCEDiceLoss, BCEJaccardLoss
 
 
 def build_loss_by_name(loss_name: str) -> nn.Module:
@@ -16,9 +17,11 @@ def build_loss_by_name(loss_name: str) -> nn.Module:
     elif loss_name == 'l2':
         return nn.MSELoss()
     elif loss_name == 'bcedice':
-        return BCEDiceLoss()
+        # return BCEDiceLoss()
+        return JointLoss(first=nn.BCEWithLogitsLoss(), second=DiceLoss())
     elif loss_name == 'bcejaccard':
-        return BCEJaccardLoss()
+        # return BCEJaccardLoss()
+        return JointLoss(first=nn.BCEWithLogitsLoss(), second=JaccardLoss())
     elif loss_name == 'dice':
         return DiceLoss()
     elif loss_name == 'jaccard':
