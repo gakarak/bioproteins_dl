@@ -14,9 +14,9 @@ import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import DataLoader
 from torch import nn
-from deephd_losses import build_loss_by_name
-from deephd_model import ASPPResNetSE, build_model_from_cfg
-from deephd_data import load_config, DHDDataset
+from .dhd_losses import build_loss_by_name
+from .dhd_model import ASPPResNetSE, build_model_from_cfg
+from .dhd_data import load_config, DHDDataset
 from pytorch_lightning import LightningModule
 import pytorch_lightning as pl
 

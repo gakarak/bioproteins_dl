@@ -11,10 +11,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import logging
 
-from deephd_data import DHDDataset, load_config
-from deephd_model import ASPPResNetSE
-from deephd_losses import build_loss_by_name
-from deephd_pipeline import DeepHDPipeline
+from .dhd_data import DHDDataset, load_config
+from .dhd_model import ASPPResNetSE
+from .dhd_losses import build_loss_by_name
+from .dhd_pipeline import DeepHDPipeline
 #
 import torch
 from torch.utils.data import DataLoader

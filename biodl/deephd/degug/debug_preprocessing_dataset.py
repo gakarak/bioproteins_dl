@@ -11,7 +11,7 @@ import prody
 import matplotlib.pyplot as plt
 import scipy.spatial.distance as sdst
 from itertools import combinations
-from ..deephd_core import read_homo_pdb_coords_cacb
+from ..dhd_core import read_homo_pdb_coords_cacb
 from ...bio_utils.task_utils import parallel_tasks_run_def
 
 

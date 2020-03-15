@@ -12,7 +12,7 @@ import logging
 import matplotlib.pyplot as plt
 import torch
 from torch.utils.data import Dataset, DataLoader
-from task_utils import parallel_tasks_run_def
+from biodl.bio_utils import parallel_tasks_run_def
 import scipy.spatial.distance as sdst
 import skimage.io as io
 
