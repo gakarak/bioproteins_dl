@@ -19,8 +19,8 @@ from pytorch_toolbelt.modules import decoders as D
 
 def build_model_from_cfg(cfg: dict) -> nn.Module:
     cfgm = cfg['model']
-    num_inp = cfgm['num_inp']
-    num_out = cfgm['num_out']
+    num_inp = cfgm['inp_size']
+    num_out = cfgm['out_size']
     if cfgm['type'] == 'ASPPResNetSE':
         model = ASPPResNetSE(inp=num_inp, out=num_out, nlin=cfgm['nlin'], num_stages=cfgm['num_stages'])
     else:

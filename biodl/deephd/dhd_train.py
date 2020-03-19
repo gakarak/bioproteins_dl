@@ -9,10 +9,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import logging
+import fire
 
-from .dhd_data import DHDDataset
-from .dhd_model import ASPPResNetSE
-from .dhd_losses import build_loss_by_name
+# from .dhd_data import DHDDataset
+# from .dhd_model import ASPPResNetSE
+# from .dhd_losses import build_loss_by_name
 from .dhd_pipeline import DeepHDPipeline
 #
 from pytorch_lightning import Trainer
@@ -21,11 +22,11 @@ from pytorch_lightning.logging import TestTubeLogger
 
 
 
-def main_train():
+def main_train(path_cfg: str, num_workers=8):
     logging.basicConfig(level=logging.INFO)
     # path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
-    path_cfg = '/mnt/data4t3/data/deepdocking_experiments/cfg.json'
-    pipeline = DeepHDPipeline(path_cfg, num_workers=16).build()
+    # path_cfg = '/mnt/data4t3/data/deepdocking_experiments/cfg.json'
+    pipeline = DeepHDPipeline(path_cfg, num_workers=num_workers).build()
     checkpoint_callback = ModelCheckpoint(filepath=os.path.join(pipeline.path_model, 'results'),
                                           verbose=True, monitor='val_loss', mode='min')
     logger = TestTubeLogger(save_dir=pipeline.path_model, version=1)
@@ -43,4 +44,4 @@ def main_train():
 
 
 if __name__ == '__main__':
-    main_train()
+    fire.Fire(main_train)

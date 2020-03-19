@@ -51,23 +51,11 @@ class DeepHDPipeline(LightningModule):
         for x in self.cfg['val_losses']:
             self.val_losses[f'val_loss_{x}'] = build_loss_by_name(x)
 
-    def _get_model_prefix(self) -> str:
-        ret = '{}_s{}_{}'.format(self.cfg['model']['type'],
-                                 self.cfg['model']['num_stages'],
-                                 self.cfg['model']['nlin'])
-        return ret
-
-    def build(self, model_dir='models'):
-
-        # path_trn = self.cfg['trn_abs']
-        # path_val = self.cfg['val_abs']
+    def build(self):
         self.dataset_trn = DHDDataset(path_idx=self.cfg['trn_abs'], crop_size=self.cfg['crop_size'],
                                       params_aug=self.cfg['aug'], test_mode=False, num_fake_iters=self.cfg['iter_per_epoch']).build()
         self.dataset_val = DHDDataset(path_idx=self.cfg['val_abs'], crop_size=self.cfg['crop_size'],
                                       params_aug=None, test_mode=True).build()
-        model_prefix = self._get_model_prefix()
-        self.path_model = os.path.join(self.cfg['wdir'], model_dir,
-                                       os.path.basename(self.path_cfg) + '_model_' + model_prefix + '_l{}'.format(self.cfg['loss']))
         logging.info(f'Pipeline:\n\nmodel = {self.model}\n\tloss-train = {self.trn_loss}\n\tloss-val = {self.val_losses}')
         return self
 
