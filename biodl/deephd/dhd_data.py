@@ -134,7 +134,9 @@ class DHDDataset(Dataset):
         #              for _, row in self.data_idx.iterrows()]
         self.data = [x for x in self.data if (x['res'].shape[1] > self.crop_size)
                      and (len(set(x['res'][0]) - set(all_res)) < 1)
-                     and (len(set(x['res'][1]) - set(all_res)) < 1)]
+                     and (len(set(x['res'][1]) - set(all_res)) < 1)
+                     and (len(x['sasa']) == len(x['res'][0]))
+                     and (len(x['res'][0]) < 1024)]
         dt = time.time() - t1
         logging.info('\t\t\t... done, dt ~ {:0.2f} (s), #samples={} with size >= {}'
                      .format(dt, len(self.data), self.crop_size))
@@ -253,22 +255,27 @@ def main_run():
     # path_idx = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/idx-okl.txt'
     # path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
     # path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
-    path_cfg = '/home/ar/data/bioinformatics/deep_hd/cfg-debug.json'
+    #
+    # path_cfg = '/home/ar/data/bioinformatics/deep_hd/cfg-debug.json'
+    path_cfg = '/mnt/data1T/data/annaha/homod/cfg.json'
     cfg = load_config(path_cfg)
-    dataset = DHDDataset(path_idx=cfg['trn_abs'],
+    dataset = DHDDataset(path_idx=cfg['val_abs'],
                          crop_size=cfg['crop_size'],
                          params_aug=cfg['aug'],
                          sasa_radiuses=cfg['data']['sasa_rad'],
+                        #  num_fake_iters=1000000,
                          test_mode=True).build()
-    for xi, x in enumerate(dataset):
+    dataloader = DataLoader(dataset, batch_size=1, num_workers=8)
+    # for xi, x in enumerate(dataset):
+    for xi, x in enumerate(dataloader):
         print('inp-shape/out-shape = {}/{}'.format(x['inp'].shape, x['out'].shape))
-        plt.subplot(1, 3, 1)
-        plt.imshow(x['inp'][0])
-        plt.subplot(1, 3, 2)
-        plt.imshow(x['out'])
-        plt.subplot(1, 3, 3)
-        plt.imshow(x['out'] < cfg['data']['dst_contact'])
-        plt.show()
+        # plt.subplot(1, 3, 1)
+        # plt.imshow(x['inp'][0])
+        # plt.subplot(1, 3, 2)
+        # plt.imshow(x['out'])
+        # plt.subplot(1, 3, 3)
+        # plt.imshow(x['out'] < cfg['data']['dst_contact'])
+        # plt.show()
     print('-')
 
 
