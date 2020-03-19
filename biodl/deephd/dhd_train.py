@@ -22,11 +22,9 @@ from pytorch_lightning.logging import TensorBoardLogger
 
 
 
-def main_train(path_cfg: str, num_workers=8):
+def main_train(path_cfg: str, num_workers=0):
     logging.basicConfig(level=logging.INFO)
-    # path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
-    # path_cfg = '/mnt/data4t3/data/deepdocking_experiments/cfg.json'
-    pipeline = DeepHDPipeline(path_cfg, num_workers=num_workers).build()
+    pipeline = DeepHDPipeline(cfg=path_cfg, num_workers=num_workers).build()
     checkpoint_callback = ModelCheckpoint(filepath=os.path.join(pipeline.path_model, 'results'),
                                           verbose=True, monitor='val_loss', mode='min')
     logger = TensorBoardLogger(save_dir=pipeline.path_model, version=1)
@@ -37,6 +35,7 @@ def main_train(path_cfg: str, num_workers=8):
                       max_nb_epochs=pipeline.cfg['epochs'],
                       checkpoint_callback=checkpoint_callback,
                       early_stop_callback=False,
+                      fast_dev_run=True,
                       gpus=[0])
     trainer.fit(pipeline)
     dt = time.time() - t1

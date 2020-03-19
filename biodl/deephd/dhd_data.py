@@ -54,12 +54,13 @@ def load_config(path_cfg: str) -> dict:
     sasa_rad = ''.join([str(x) for x in cfg['data']['sasa_rad']])
     use_sasa = int(cfg['data']['use_sasa'])
     use_indices = int(cfg['data']['use_indices'])
-    data_str = f'{res_types}_sasa{use_sasa}_sasar{sasa_rad}_ind{use_indices}'
+    dst_contact = cfg['data']['dst_contact']
+    data_str = f'{res_types}_sasa{use_sasa}_sasar{sasa_rad}_ind{use_indices}_dst{dst_contact}'
     loss_ = cfg['loss']
     #
     cfg_pref = os.path.basename(os.path.splitext(path_cfg)[0])
     cfg['model_prefix'] = f'{cfg_pref}_model_{mtype_}_i{inp_size}o{out_size}_{menc}-{mdec}_l{loss_}_{data_str}'
-    cfg['model_path'] = os.path.join(wdir, 'models', cfg['model_prefix'])
+    cfg['path_model'] = os.path.join(wdir, 'models', cfg['model_prefix'])
     return cfg
 
 
@@ -101,7 +102,8 @@ def load_one_sample(row: pd.Series, sasa_radiuses: O[tuple] = None) -> dict:
 
 class DHDDataset(Dataset):
 
-    def __init__(self, path_idx: str, crop_size: int, params_aug: dict = None,
+    def __init__(self, path_idx: str, crop_size: int,
+                 dst_contact: O[float] = None, params_aug: O[dict] = None,
                  num_fake_iters=100, test_mode=False, test_mode_crop=False,
                  res_types=('ca', 'cb'), use_sasa=True, use_indices=True,
                  sasa_radiuses=(3, ), crop_coef=2**5):
@@ -118,6 +120,7 @@ class DHDDataset(Dataset):
         self.use_sasa = use_sasa
         self.sasa_radiuses = sasa_radiuses
         self.crop_coef = crop_coef
+        self.dst_contact = dst_contact
 
     def build(self):
         self.wdir = os.path.dirname(self.path_idx)
@@ -179,6 +182,11 @@ class DHDDataset(Dataset):
         xy_ = 2 * np.mgrid[:num_xy, :num_xy] / num_xy
         return xy_
 
+    def __get_ok_len(self, sample: dict) -> int:
+        num_ = len(sample['res'][0])
+        num_fix_ = int(self.crop_coef * np.floor(num_ / self.crop_coef))
+        return num_fix_
+
     def __get_dsc_mat(self, sample: dict, aug_params: dict = None) -> dict:
         inp_data, out_data = [], []
         for x in self.res_types:
@@ -191,17 +199,21 @@ class DHDDataset(Dataset):
             inp_data.append(self.__get_coords_map(sample))
         res_pw = get_pairwise_res_1hot_matrix(sample['res'][0]).astype(np.float32)
         inp_data.append(res_pw)
-        inp_data = np.concatenate(inp_data, axis=0)
+        inp_data = np.concatenate(inp_data, axis=0).astype(np.float16)
         # inp = np.dstack([dst_x1x1[None..., None], res_pw])
         #FIXME: this is not a godd choise for performance
         if self.crop_coef is not None:
-            num_ = len(sample['res'][0])
-            num_fix_ = int(self.crop_coef * np.floor(num_ / self.crop_coef))
+            num_fix_ = self.__get_ok_len(sample)
             inp_data = inp_data[..., :num_fix_, :num_fix_]
             out_data = [x[..., :num_fix_, :num_fix_] for x in out_data]
+        #FIXME: multitask-prediction
+        if self.dst_contact is None:
+            out_ = out_data[0].astype(np.float16)
+        else:
+            out_ = (out_data[0] < self.dst_contact).astype(np.float16)
         ret = {
             'inp': inp_data,
-            'out': out_data[0], #FIXME: multitask-prediction
+            'out': out_, 
             'pdb': sample['pdb']
         }
         return ret
@@ -232,7 +244,7 @@ class DHDDataset(Dataset):
         if not self.test_mode:
             dst_info = self._get_random_crop(dst_info, self.crop_size)
         else:
-            dst_info = self._get_random_crop(dst_info, crop_size=len(sample['res'][0]))
+            dst_info = self._get_random_crop(dst_info, crop_size=self.__get_ok_len(sample))
         return dst_info
 
 

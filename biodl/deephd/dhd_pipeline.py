@@ -8,6 +8,7 @@ import json
 import numpy as np
 import pandas as pd
 import pickle as pkl
+from typing import Union as U
 import logging
 import matplotlib.pyplot as plt
 
@@ -33,14 +34,24 @@ def worker_init_fn_random(idx):
     np.random.seed(seed_)
 
 
+def _preprocess_batch(data: dict) -> dict:
+    data['inp'] = data['inp'].type(torch.float32)
+    data['out'] = data['out'].type(torch.float32)
+    return data
+
+
 class DeepHDPipeline(LightningModule):
 
-    def __init__(self, path_cfg: str, num_workers=8):
+    def __init__(self, cfg: U[str, dict], num_workers=8, path_cfg: str = None):
         super().__init__()
-        self.path_cfg = path_cfg
+        if isinstance(cfg, str):
+            self.path_cfg = cfg
+            self.cfg = load_config(self.path_cfg)
+        else:
+            self.cfg = cfg
+            self.path_cfg = path_cfg
+        self.path_model = self.cfg['path_model']
         self.num_workers = num_workers
-        self.cfg = load_config(self.path_cfg)
-        self.model_prefix = self.cfg['model']['type']
         self.model = build_model_from_cfg(self.cfg)
         # self.model = ASPPResNetSE(inp=43, out=1,
         #                           nlin=self.cfg['model']['nlin'],
@@ -52,10 +63,26 @@ class DeepHDPipeline(LightningModule):
             self.val_losses[f'val_loss_{x}'] = build_loss_by_name(x)
 
     def build(self):
-        self.dataset_trn = DHDDataset(path_idx=self.cfg['trn_abs'], crop_size=self.cfg['crop_size'],
-                                      params_aug=self.cfg['aug'], test_mode=False, num_fake_iters=self.cfg['iter_per_epoch']).build()
-        self.dataset_val = DHDDataset(path_idx=self.cfg['val_abs'], crop_size=self.cfg['crop_size'],
-                                      params_aug=None, test_mode=True).build()
+        cfd=self.cfg['data']
+        self.dataset_trn = DHDDataset(path_idx=self.cfg['trn_abs'],
+                                      crop_size=self.cfg['crop_size'],
+                                      use_sasa=cfd['use_sasa'],
+                                      sasa_radiuses=cfd['sasa_rad'],
+                                      res_types=cfd['res_types'],
+                                      use_indices=cfd['use_indices'],
+                                      params_aug=self.cfg['aug'],
+                                      dst_contact=cfd['dst_contact'],
+                                      test_mode=False,
+                                      num_fake_iters=self.cfg['iter_per_epoch']).build()
+        self.dataset_val = DHDDataset(path_idx=self.cfg['val_abs'],
+                                      crop_size=self.cfg['crop_size'],
+                                      use_sasa=cfd['use_sasa'],
+                                      sasa_radiuses=cfd['sasa_rad'],
+                                      res_types=cfd['res_types'],
+                                      use_indices=cfd['use_indices'],
+                                      dst_contact=cfd['dst_contact'],
+                                      params_aug=None,
+                                      test_mode=True).build()
         logging.info(f'Pipeline:\n\nmodel = {self.model}\n\tloss-train = {self.trn_loss}\n\tloss-val = {self.val_losses}')
         return self
 
@@ -63,6 +90,7 @@ class DeepHDPipeline(LightningModule):
         return self.model(x)
 
     def training_step(self, batch, batch_nb):
+        batch = _preprocess_batch(batch)
         x = batch['inp']
         y_gt = batch['out'].type(torch.float32)
         y_pr = self.model(x)
@@ -71,17 +99,8 @@ class DeepHDPipeline(LightningModule):
         return {'loss': loss, 'log': tensorboard_logs}
         # return {'loss': tensorboard_logs}
 
-    # def training_end(self, outputs):
-    #     keys_ = list(outputs[0].keys())
-    #     # ret_avg = {f'{k}': torch.stack([x[k] for x in outputs]).mean() for k in keys_}
-    #     k = 'train_loss'
-    #     ret_avg = {k: torch.stack([x[k] for x in outputs]).mean()}
-    #     # ret_avg =
-    #     tensorboard_logs = ret_avg
-    #     ret = {'log': tensorboard_logs}
-    #     return ret
-
     def validation_step(self, batch, batch_nb):
+        batch = _preprocess_batch(batch)
         x = batch['inp']
         y_gt = batch['out'].type(torch.float32)
         y_pr = self.model(x)
