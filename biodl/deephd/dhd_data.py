@@ -219,17 +219,17 @@ class DHDDataset(Dataset):
         return ret
 
     def _get_random_crop(self, dst_info: dict, crop_size: int) -> dict:
-        nrc = dst_info['inp'].shape[0]
+        nrc = dst_info['inp'].shape[-1]
         if crop_size < nrc:
             rr, cc = np.random.randint(0, nrc - crop_size, 2)
-            inp_crop = dst_info['inp'][rr: rr + crop_size, cc: cc + crop_size, ...]
-            out_crop = dst_info['out'][rr: rr + crop_size, cc: cc + crop_size, ...]
+            inp_crop = dst_info['inp'][..., rr: rr + crop_size, cc: cc + crop_size].copy()
+            out_crop = dst_info['out'][..., rr: rr + crop_size, cc: cc + crop_size].copy()
         else:
             inp_crop = dst_info['inp']
             out_crop = dst_info['out']
         ret = {
             'inp': inp_crop,
-            'out': out_crop,
+            'out': out_crop[None, ...],
             'pdb': dst_info['pdb']
         }
         return ret
@@ -253,7 +253,7 @@ def main_run():
     # path_idx = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/idx-okl.txt'
     # path_cfg = '/home/ar/data/bioinformatics/deepdocking_experiments/homodimers/raw/cfg.json'
     # path_cfg = '/mnt/data4t3/data/deepdocking_experiments/homodimers/raw/cfg.json'
-    path_cfg = '/home/ar/data/bioinformatics/deep_hd/cfg.json'
+    path_cfg = '/home/ar/data/bioinformatics/deep_hd/cfg-debug.json'
     cfg = load_config(path_cfg)
     dataset = DHDDataset(path_idx=cfg['trn_abs'],
                          crop_size=cfg['crop_size'],

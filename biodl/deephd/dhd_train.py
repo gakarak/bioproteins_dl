@@ -4,6 +4,7 @@ __author__ = 'ar'
 
 
 import os
+import sys
 import time
 import numpy as np
 import pandas as pd
@@ -29,14 +30,24 @@ def main_train(path_cfg: str, num_workers=0):
                                           verbose=True, monitor='val_loss', mode='min')
     logger = TensorBoardLogger(save_dir=pipeline.path_model, version=1)
     t1 = time.time()
+    # data_loader = pipeline.train_dataloader()
+    # for xi, x in enumerate(data_loader):
+    #
+    #
+    #
+    #     print('-')
+    #
     trainer = Trainer(default_save_path=pipeline.path_model,
                       logger=logger,
                       # log_gpu_memory=True,
-                      max_nb_epochs=pipeline.cfg['epochs'],
+                      max_epochs=pipeline.cfg['epochs'],
                       checkpoint_callback=checkpoint_callback,
                       early_stop_callback=False,
-                      fast_dev_run=True,
-                      gpus=[0])
+                      fast_dev_run=False,
+                      show_progress_bar=False,
+                      # gpus=None,
+                      gpus=[0],
+                      )
     trainer.fit(pipeline)
     dt = time.time() - t1
     logging.info(f'\t\t... done, dt ~ {dt:0.2f} (s)')
