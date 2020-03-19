@@ -18,7 +18,7 @@ from .dhd_pipeline import DeepHDPipeline
 #
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.logging import TestTubeLogger
+from pytorch_lightning.logging import TensorBoardLogger
 
 
 
@@ -29,7 +29,7 @@ def main_train(path_cfg: str, num_workers=8):
     pipeline = DeepHDPipeline(path_cfg, num_workers=num_workers).build()
     checkpoint_callback = ModelCheckpoint(filepath=os.path.join(pipeline.path_model, 'results'),
                                           verbose=True, monitor='val_loss', mode='min')
-    logger = TestTubeLogger(save_dir=pipeline.path_model, version=1)
+    logger = TensorBoardLogger(save_dir=pipeline.path_model, version=1)
     t1 = time.time()
     trainer = Trainer(default_save_path=pipeline.path_model,
                       logger=logger,

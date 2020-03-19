@@ -57,7 +57,8 @@ def load_config(path_cfg: str) -> dict:
     data_str = f'{res_types}_sasa{use_sasa}_sasar{sasa_rad}_ind{use_indices}'
     loss_ = cfg['loss']
     #
-    cfg['model_prefix'] = f'model_{mtype_}_i{inp_size}o{out_size}_{menc}-{mdec}_l{loss_}_{data_str}'
+    cfg_pref = os.path.basename(os.path.splitext(path_cfg)[0])
+    cfg['model_prefix'] = f'{cfg_pref}_model_{mtype_}_i{inp_size}o{out_size}_{menc}-{mdec}_l{loss_}_{data_str}'
     cfg['model_path'] = os.path.join(wdir, 'models', cfg['model_prefix'])
     return cfg
 
