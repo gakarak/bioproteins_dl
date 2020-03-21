@@ -115,7 +115,7 @@ class DeepHDPipeline(LightningModule):
         return ret
 
     def configure_optimizers(self):
-        ret = torch.optim.Adam(self.model.parameters(), lr=1e-4)
+        ret = torch.optim.Adam(self.model.parameters(), lr=5e-4)
         return ret
 
     @pl.data_loader
