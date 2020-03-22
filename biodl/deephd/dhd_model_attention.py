@@ -89,17 +89,18 @@ class SubConvBlock(nn.Module):
 
 class VGG_Decoder(nn.Module):
 
-    def __init__(self, inp_size: int, out_size: int, up_sizes=(2, 2, 4, 4, ), stage1_chn=64, stage2_chn=32):
+    def __init__(self, inp_size: int, out_size: int, up_sizes=(2, 2, 4, 4, ),
+                 stage1_chn=64, stage2_chn=32, use_bn=False):
         super().__init__()
         layers = []
         for xi, x in enumerate(up_sizes):
             l_up = nn.UpsamplingBilinear2d(scale_factor=x)
             if xi == 0:
-                l_conv = ConvBlock_VGG(inp_size, stage1_chn, kernel_size=3, use_bn=False)
+                l_conv = ConvBlock_VGG(inp_size, stage1_chn, kernel_size=3, use_bn=use_bn)
             elif xi == 1:
-                l_conv = ConvBlock_VGG(stage1_chn, stage2_chn, kernel_size=3, use_bn=False)
+                l_conv = ConvBlock_VGG(stage1_chn, stage2_chn, kernel_size=3, use_bn=use_bn)
             else:
-                l_conv = ConvBlock_VGG(stage2_chn, stage2_chn, kernel_size=3, use_bn=False)
+                l_conv = ConvBlock_VGG(stage2_chn, stage2_chn, kernel_size=3, use_bn=use_bn)
             layers.append(l_up)
             layers.append(l_conv)
         out_conv = nn.Conv2d(stage2_chn, out_size, kernel_size=1)
@@ -138,7 +139,7 @@ class VGG_Encoder(nn.Module):
 
 class SelfAttentionLayer(nn.Module):
 
-    def __init__(self, inp_size: int, emb_size: int, out_size=None):
+    def __init__(self, inp_size: int, emb_size: int, out_size=None, use_bn=False):
         super().__init__()
         self.inp_size = inp_size
         self.emb_size = emb_size
@@ -147,11 +148,11 @@ class SelfAttentionLayer(nn.Module):
         else:
             self.out_size = inp_size
         self.conv_q = ConvBlock_VGG(in_channels=inp_size, out_channels=emb_size, kernel_size=1,
-                                    num_conv=2, skip_last_activation=True)
+                                    num_conv=2, skip_last_activation=True, use_bn=use_bn)
         self.conv_k = ConvBlock_VGG(in_channels=inp_size, out_channels=emb_size, kernel_size=1,
-                                    num_conv=2, skip_last_activation=True)
+                                    num_conv=2, skip_last_activation=True, use_bn=use_bn)
         self.conv_v = ConvBlock_VGG(in_channels=inp_size, out_channels=self.out_size, kernel_size=1,
-                                    num_conv=2, skip_last_activation=True)
+                                    num_conv=2, skip_last_activation=True, use_bn=use_bn)
 
     def forward(self, x: T) -> T:
         bsize, nch, h, w = x.size()
@@ -201,7 +202,8 @@ class DeepAttentionModel(nn.Module):
         self.out_size = out_size
         self.use_attention = use_attention
         self.encoder = VGG_Encoder(in_channels=inp_size, num_stages=num_enc_stages,
-                                   stage1_chn=stage1_chn, stage2_chn=stage2_chn)
+                                   stage1_chn=stage1_chn, stage2_chn=stage2_chn,
+                                   use_bn=False)
         if self.use_attention:
             layers_attentions = []
             for x in range(num_attention_stages):
