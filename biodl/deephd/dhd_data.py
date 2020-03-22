@@ -106,7 +106,7 @@ class DHDDataset(Dataset):
                  dst_contact: O[float] = None, params_aug: O[dict] = None,
                  num_fake_iters=100, test_mode=False, test_mode_crop=False,
                  res_types=('ca', 'cb'), use_sasa=True, use_indices=True,
-                 sasa_radiuses=(3, ), crop_coef=2**5):
+                 sasa_radiuses=(3, ), crop_coef=2**6):
         self.path_idx = path_idx
         self.params_aug = params_aug
         self.test_mode = test_mode
