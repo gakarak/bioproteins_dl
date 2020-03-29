@@ -9,6 +9,27 @@ from torch import functional as F
 from torchvision.models import resnet34
 from typing import Union as U, Optional as O
 from segmentation_models_pytorch import Unet, FPN, Linknet, PSPNet
+from typing import Optional as O, Union as U
+
+
+def build_model_from_cfg(cfg: dict) -> nn.Module:
+    cfgm = cfg['model']
+    num_inp = cfgm['num_inp']
+    num_out = cfgm['num_out']
+    if cfgm['type'] == 'ASPPResNetSE':
+        model = ASPPResNetSE(inp=num_inp, out=num_out, nlin=cfgm['nlin'], num_stages=cfgm['num_stages'])
+    else:
+        type_enc = cfgm['ext']['enc']
+        type_dec = cfgm['ext']['dec']
+        if type_dec == 'fpn':
+            model = FPN(type_enc, in_channels=num_inp, encoder_depth=cfgm['ext']['depth'], classes=num_out)
+        elif type_dec == 'unet':
+            model = Unet(type_enc, in_channels=num_inp, encoder_depth=cfgm['ext']['depth'], classes=num_out)
+        elif type_dec == 'psp':
+            model = PSPNet(type_enc, in_channels=num_inp, encoder_depth=cfgm['ext']['depth'], classes=num_out)
+        else:
+            raise NotImplementedError
+    return model
 
 
 def split_int_to_chunks(val: int, num: int) -> tuple:
